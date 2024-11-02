@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spin 1/2 Elastic Solid Simulation</title>
+      <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+    /* Style for the GUI container */
+    /* Targeting the specific 'info' label within dat.GUI */
+  .dg .property-name {
+    color: #ffffff; /* Default color for all text labels */
+  }
+  
+  .dg .property-name[data-property="showInfo"] {
+    color: #ffff00; /* Yellow */
+    font-weight: bold; /* Make it bold */
+  }
+  
+/* Ensure GUI container has appropriate z-index and positioning */
+#gui-container {
+  position: absolute;
+  top: 30px;
+  left: 10px;
+  z-index: 1001; /* Adjusted to be above the popup background but below the close button */
+  padding-right: 50px; /* Add padding to prevent overlap with the close button */
+}
+    /* Styles for the info popup */
+    #info-popup {
+      display: none; /* Hidden by default */
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+	   overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0, 0, 0, 0.6); /* Black background with opacity */
+      backdrop-filter: blur(4px); /* Blur effect for background */
+      animation: fadeIn 0.3s ease-out;
+    }
+
+   #info-popup-content {
+      background-color: #fefefe;
+      margin: 1% auto;
+      padding: 20px 30px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 1200px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      position: relative;
+      animation: slideIn 0.4s ease-out;
+	 max-height: 90vh; /* Slightly reduced max-height */
+	overflow: auto; /* Enable scrollbars if content overflows */
+    }
+
+/* Additional responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .close-button {
+    top: 5px;
+    right: 5px;
+    font-size: 24px; /* Slightly smaller to fit better on small screens */
+  }
+
+  #gui-container {
+    padding-right: 30px; /* Less padding on smaller screens */
+  }
+}
+ /* Adjust the positioning and z-index of the close button */
+.close-button {
+  color: #ffffff;
+  float: right;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  position: absolute; /* Ensures it does not affect the layout of other elements */
+  top: -30px; /* Adjust top positioning as needed */
+  left: 0px; /* Adjust right positioning as needed */
+  z-index: 1010; /* Higher than the container to make it appear on top */
+}
+
+    .close-button:hover,
+    .close-button:focus {
+      color: #ffff00;
+      text-decoration: none;
+    }
+
+    h2 {
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 10px;
+    }
+
+    p, ul {
+      line-height: 1.6;
+    }
+
+    ul {
+      margin-left: 20px;
+    }
+
+    a {
+      color: #1a0dab;
+      text-decoration: none;
+      border-bottom: 1px dotted #1a0dab;
+    }
+
+    a:hover {
+      color: #c61aff;
+      border-bottom: 1px solid #c61aff;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Responsive adjustments */
+    @media screen and (max-width: 600px) {
+      #info-popup-content {
+        width: 95%;
+        margin-top: 10%;
+      }
+
+      .close-button {
+        font-size: 24px;
+        top: 10px;
+        right: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Container for the GUI -->
+  <div id="gui-container"></div>
+
+  <!-- Info Popup -->
+  <div id="info-popup">
+    <div id="info-popup-content">
+      <span class="close-button" id="info-close">&times;</span>
+      <h2>Simulation Overview</h2>
+      <p>
+        This simulation visualizes the behavior of a <strong>spin-1/2 particle</strong> in an elastic solid. The spin-1/2 system is represented using quaternions to simulate the rotational properties that require a full 720-degree rotation to return to the original state. This phenomenon is often demonstrated using the <strong>Belt Trick</strong>, illustrating the non-trivial topology associated with spinors in quantum mechanics.
+      </p>
+
+      <h2>Controls</h2>
+      <p>The GUI on the right allows you to adjust various parameters of the simulation:</p>
+      <ul>
+        <li><strong>Mode:</strong> Choose between "Spin 1/2" and "Belt Trick" modes.</li>
+        <li><strong>Kernel Function:</strong> Type of kernel function applied ("Original" or "Ring").</li>
+        
+        <li><strong>Max Winding:</strong> Maximum rotation angle for the kernel (in degrees).</li>
+        <li><strong>Rotation Speed:</strong> Speed at which the system rotates.</li>
+        <li><strong>Auto Rotate:</strong> Automatically increment phase for continuous rotation.</li>
+        <li><strong>Phase:</strong> Manual control of the phase angle.</li>
+        <li><strong>Number of Markers:</strong> Number of markers in the simulation.</li>
+        <li><strong>Decay Power:</strong> Controls the decay rate of the kernel function with distance.</li>
+        <li><strong>Shell Radius:</strong> Radius for the ring-shaped kernel function.</li>
+        <li><strong>Number of Layers:</strong> Number of grid layers (planes) in the simulation.</li>
+      </ul>
+
+      <h2>UI Elements</h2>
+      <p>The visualization consists of:</p>
+      <ul>
+        <li><strong>Central Sphere:</strong> Represents the origin or the spinor itself.</li>
+        <li><strong>Grid Layers:</strong> Planes composed of grids that undergo transformations to visualize the spinor rotation.</li>
+        <li><strong>Arrows:</strong> Represent vector fields that help visualize the rotation and orientation of elements in the grid.</li>
+        <li><strong>Markers:</strong> Points that trace paths to illustrate the rotation and its effect over time.</li>
+        <li><strong>Belt (in Belt Trick mode):</strong> A series of cubes forming a belt to demonstrate the 720-degree rotation property of spinors.</li>
+      </ul>
+
+      <h2>Formulas Used</h2>
+      <p>The simulation uses the following mathematical concepts:</p>
+      <ul>
+        <li><strong>Quaternions:</strong> Used to represent rotations in three dimensions. See <a href="https://en.wikipedia.org/wiki/Quaternion" target="_blank">Wikipedia: Quaternion</a>.</li>
+        <li><strong>Belt Trick:</strong> Demonstrates that a 360-degree rotation does not return a spinor to its original state, but a 720-degree rotation does. See <a href="https://en.wikipedia.org/wiki/Plate_trick" target="_blank">Wikipedia: Plate Trick</a>.</li>
+        <li><strong>Spinors:</strong> Mathematical objects used in quantum mechanics to describe the state of particles with half-integer spin. See <a href="https://en.wikipedia.org/wiki/Spinor" target="_blank">Wikipedia: Spinor</a>.</li>
+        <li><strong>Kernel Functions:</strong> Spatially varying functions used to apply rotations based on distance from the origin.</li>
+      </ul>
+    </div>
+  </div>
+   <!-- Include Three.js library -->
+   <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
+  <!-- Include OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/examples/js/controls/OrbitControls.js"></script>
+  
+ 
+  <div id="gui-container"></div>
+<script src="script.js"></script>
+
+
+</body>
+</html>
